@@ -17,7 +17,7 @@ app.post('/api/login', (req, res) => {
         username: 'Anton',
         email: 'snumber29@gmail.com'
     };
-    jwt.sign({ user }, 'secret_key', (err, token) => {
+    jwt.sign({ user }, 'secret_key', {expiresIn: '30s'}, (err, token) => {
         res.json({ token });
     });
 });
