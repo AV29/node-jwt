@@ -3,13 +3,6 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
-app.use((req, res, next) => {
-    console.log('Request got from: ', req.url);
-    next();
-});
-
-app.use(verifyToken);
-
 app.post('/api/login', (req, res) => {
     //Mock user
     const user = {
@@ -17,12 +10,12 @@ app.post('/api/login', (req, res) => {
         username: 'Anton',
         email: 'snumber29@gmail.com'
     };
-    jwt.sign({ user }, 'secret_key', {expiresIn: '30s'}, (err, token) => {
+    jwt.sign({ user }, 'secret_key', { expiresIn: '30s' }, (err, token) => {
         res.json({ token });
     });
 });
 
-app.get('/api', (req, res) => {
+app.get('/api', verifyToken, (req, res) => {
     res.json({
         message: 'Welcome to the API'
     });
@@ -36,6 +29,11 @@ app.post('/api/posts', verifyToken, (req, res) => {
     });
 });
 
+app.all('*', (req, res) => {
+    console.log('Request got from: ', req.url);
+    res.sendStatus(404);
+});
+
 app.listen(5000, () => {
     console.log('Server is listening on port 5000');
 });
@@ -44,28 +42,22 @@ app.listen(5000, () => {
 
 function verifyToken (req, res, next) {
 
-    if (req.url === '/api/login') {
-        next('route');
+    // Get auth header value
+
+    const bearerHeader = req.headers['authorization'];
+    // Check if bearer is undefined
+    if (typeof bearerHeader !== 'undefined') {
+        //set token
+        jwt.verify(bearerHeader.split(' ')[1], 'secret_key', (err, authData) => {
+            if (err) {
+                res.sendStatus(403);
+            } else {
+                req.authData = authData;
+                next();
+            }
+        });
     } else {
-
-        // Get auth header value
-
-        const bearerHeader = req.headers['authorization'];
-        // Check if bearer is undefined
-        if (typeof bearerHeader !== 'undefined') {
-            //set token
-            jwt.verify(bearerHeader.split(' ')[1], 'secret_key', (err, authData) => {
-                if (err) {
-                    res.sendStatus(403);
-                } else {
-                    req.authData = authData;
-                    next();
-                }
-            });
-        } else {
-            // Forbidden
-            res.sendStatus(403);
-        }
+        // Forbidden
+        res.sendStatus(403);
     }
-
 }
